@@ -201,6 +201,8 @@ void configureMotion(){
     sum_y = sum_y + y;
     sum_z = sum_z + z;
     count++;
+
+    endtime = millis();
   }
   xSet = sum_x/count;
   ySet = sum_y/count;
@@ -340,7 +342,7 @@ void diagnose(){
   Serial.print("F "); //final
   Serial.println(walk_type); //walk type
 }
-void reset(){
+void reset(){ //resetting stats
   xSet = 0;
   ySet = 0;
   zSet = 6;
