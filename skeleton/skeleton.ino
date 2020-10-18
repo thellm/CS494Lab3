@@ -62,7 +62,7 @@ int led_lf = 6;
 int led_heel = 5;
 
 //Serial communication value
-String val = "";
+int val;
 
 //timing variables
 unsigned long int starttime = 0;
@@ -118,6 +118,10 @@ void loop() {
     sendMotion();
     sendFSR();
   }
+  //uncomment to debug accelometer
+  //sendMotion();
+
+ 
 }
 
 void calcMFP(){
@@ -179,9 +183,11 @@ void sendMotion(){
   }
   
   if(is_motion){
-    Serial.println("1");
+    Serial.print("1 ");
+    Serial.println(x);
   }
   else {
+    Serial.print("0 ");
     Serial.println("0");
   }
 }
@@ -211,7 +217,7 @@ void configureMotion(){
 }
 
 //Input is a char of the MFP walk/gait type we are measuring
-void configureMFP(String gait_type){
+void configureMFP(int gait_type){
   starttime = millis();
   endtime = starttime;
 
