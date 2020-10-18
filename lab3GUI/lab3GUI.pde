@@ -51,8 +51,8 @@ int point_heel;
 void setup() {
   
   printArray(Serial.list());
-  //port = new Serial(this, "COM5", 9600); //make sure to change to your port connected to device
-  //port.bufferUntil('\n');
+  port = new Serial(this, "COM5", 115200); //make sure to change to your port connected to device
+  port.bufferUntil('\n');
   
   size(1650,830);
   foot_img = loadImage("foot.png");

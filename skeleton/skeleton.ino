@@ -69,7 +69,7 @@ unsigned long int starttime = 0;
 unsigned long int endtime = 0;
 
 void setup() {
-  // Begin serial communication at a baud rate of 9600:
+
   Serial.begin(115200);
   while(!Serial){delay(10);}
 
