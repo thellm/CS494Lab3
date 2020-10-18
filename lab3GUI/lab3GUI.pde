@@ -7,14 +7,17 @@ ControlTimer timer;
 Serial port;
 PFont font;
 PFont button_font;
+PFont button_font2;
 
 //user stats
 String step_count = "0";
 String step_length = "0";
+String stride_length = "0";
 String time = "0";
 String speed = "0";
-String walking = "Not Walking";
+String walking = "";
 String diagnoses = "Unknown";
+String message = "";
 
 //input line from Serial
 String[] line;
@@ -24,7 +27,7 @@ PImage foot_img;
 //Graph variables
 int xPos = 900;
 int yPos = 450;
-int xEdge = 1500;
+int xEdge = 1600;
 int Index;
 boolean newData = false;
 
@@ -46,7 +49,12 @@ int point_heel;
 //=============================================================================================
 
 void setup() {
-  size(1600,800);
+  
+  printArray(Serial.list());
+  //port = new Serial(this, "COM5", 9600); //make sure to change to your port connected to device
+  //port.bufferUntil('\n');
+  
+  size(1650,830);
   foot_img = loadImage("foot.png");
   
   // Create the font
@@ -58,49 +66,57 @@ void setup() {
   
 
   button_font = createFont("SourceCodePro-Regular.ttf", 20);
+  button_font2 = createFont("SourceCodePro-Regular.ttf", 30);
   // create a new button with name 'buttonA'
   cp5.addButton("normalgait")
    .setLabel("Set Normal Gait")
-   .setPosition(900,500)
+   .setPosition(910,480)
    .setSize(250,30)
    .setFont(button_font)
    ;
   cp5.addButton("intoe")
    .setLabel("Set In-Toe Gait")
-   .setPosition(900,540)
+   .setPosition(910,520)
    .setSize(250,30)
    .setFont(button_font)
    ;
   cp5.addButton("outtoe")
    .setLabel("Set Out-Toe Gait")
-   .setPosition(900,580)
+   .setPosition(910,560)
    .setSize(250,30)
    .setFont(button_font)
    ;
   cp5.addButton("tiptoe")
    .setLabel("Set Tip-Toe Gait")
-   .setPosition(900,620)
+   .setPosition(910,600)
    .setSize(250,30)
    .setFont(button_font)
    ;
   cp5.addButton("heel")
    .setLabel("Set Heel Gait")
-   .setPosition(900,660)
+   .setPosition(910,640)
    .setSize(250,30)
    .setFont(button_font)
    ;
   cp5.addButton("diagnose")
-   .setLabel("Diagnose")
-   .setPosition(1200,500)
-   .setSize(250,70)
-   .setFont(font)
+   .setLabel("Diagnose Me")
+   .setPosition(1245, 610)
+   .setSize(350,40)
+   .setFont(button_font2)
    ;
   cp5.addButton("reset")
-   .setLabel("Reset")
-   .setPosition(1200,620)
-   .setSize(250,70)
-   .setFont(font)
+   .setLabel("Reset All")
+   .setPosition(1245,480)
+   .setSize(350,40)
+   .setFont(button_font2)
    ;
+  cp5.addButton("configure")
+   .setLabel("Configure Motion")
+   .setPosition(1245,530)
+   .setSize(350,40)
+   .setFont(button_font2)
+   ;
+  
 }
 
 //=============================================================================================
@@ -109,35 +125,75 @@ void draw() {
   
   background(181,211,231);
   
-  fill(200);
-  rect(890, 490, 280, 210, 7);
+  fill(200,0,0);                //covers set gait button area
+  rect(900, 470, 280, 210, 7); 
+      
+  fill(100,220,100);            //covers diagnose button area
+  rect(1235, 600, 370, 60, 7);
   
+  fill(0,100,200);              //covers reset/configure button area
+  rect(1235, 470, 370, 110, 7);
+  
+  fill(240,240,100);            //cover instructions
+  rect(900, 695, 705, 120,7);
+  
+  fill(250);                    //updates area
+  rect(380, 695, 480, 120, 7);
+  
+  fill(0);                      //Instructions for GUI
+  textSize(18);
+  text("STEP 1: Configure motion sensor, stand still for 30 seconds", 910, 720);
+  text("STEP 2: Set each gait type with walking style for 30 seconds", 910, 740);
+  text("STEP 3: Press reset if need to reconfigure and repeat steps 1,2", 910, 760);
+  text("STEP 4: Check your stats while in motion or press 'Diagnose Me'", 910, 780);
+  text("        to find out your walking pattern", 910, 800);
+      
+             
+  fill(255);
+  ellipse(530,60,240,105);
   fill(0);
-  textSize(50);
-  text("Welcome to 'Watch Your Step' aka WYS", 400, 80);
+  textSize(60);                //welcome message at top of gui
+  text("Welcome to ", 25, 80);
+  textSize(80);
+  fill(255, 165, 0);
+  text("W", 445, 90);
+  fill(80, 220, 100);
+  text("Y", 502, 90);
+  fill(0,0,255);
+  text("S", 545, 90);
+  fill(255,0,0);
+  text("!", 585, 90);
+  textSize(60); 
+  fill(0);
+  text(" 'Watch Your Step' Module", 630, 80);
+  
+  
+  //fill(0);
+  //textSize(65);
+  //text("Welcome to WYS! 'Watch Your Step' Module", 40, 70);
   
 //------------foot imaging area------------------------------------------------
-  image(foot_img, 10, 50, width/4.5, 700);
+  image(foot_img, 10, 100, width/4.5, 700);
   
   //draw circle for heel, RED color
   fill(255,0,0);
-  circle(200, 650, heel);
+  circle(200, 700, heel);
   
   //draw circle for mm, BLUE color
   fill(0, 0, 255);
-  circle(280, 350, mm);
+  circle(280, 400, mm);
   
   //draw circle for mf, GREEN color
-  fill(0, 255, 0);
-  circle(200, 230, mf);
+  fill(80, 220, 100);
+  circle(200, 280, mf);
   
   //draw circle for lf, ORANGE color
   fill(255, 165, 0);
-  circle(140, 430, lf);
+  circle(140, 480, lf);
   
 //-----------------------Area for graph----------------------------------------
-  fill(0);
-  rect(900, 150, 610, 300, 7);
+  fill(235);
+  rect(900, 150, 705, 300, 7);
   
   fill(255,0,0);
   
@@ -163,13 +219,15 @@ void draw() {
   textSize(32);
   text("Step Count: ", 400, 200); text(step_count, 700, 200);
   text("Step Length: ", 400, 250); text(step_length, 700, 250);
-  text("Time: ", 400, 300); text(time, 700, 300);   
-  text("Speed: ", 400, 350); text(speed, 700, 350);
-  text("Gait: ", 400, 400); text(diagnoses, 700, 400);
-  
-  textSize(40);
+  text("Stride Length: ", 400, 300); text(stride_length, 700, 300);
+  text("Time: ", 400, 350); text(time, 700, 350);   
+  text("Cadence: ", 400, 400); text(speed, 700, 400);
+  text("Gait: ", 400, 450); text(diagnoses, 700, 450);
   text(walking, 400, 600);
-
+  text("Updates:", 400, 730);
+  textSize(20);
+  text(message,400,770); 
+  text("Updates will diplasy here....",400,770);
 }
 
 //=============================================================================================
@@ -201,13 +259,35 @@ void serialEvent (Serial port) {
       
       heel = Integer.valueOf(line[4]);
       heel = int(ceil(map(heel, 0, 1023, 10, 130)));
-    }
-    
+    }   
     if(mode.equals("S1:")){
+      step_length = line[1];
+      stride_length = line[2];
+      speed = line[3];
+      step_count = line[4];
     }
     if(mode.equals("S2:")){
+      message = "";
+      //if next element if F then final diagnoses follows
+      if(line[1].equals("F")) { 
+        diagnoses = line[2];
+        message = "The final diagnoses is " + line[2];
+      }
+      else {
+        //get the message
+        for(int i = 1; i < line.length; i++ ){
+          message = message + " " + line [i]; 
+        }
+      }
     }
     if(mode.equals("S3:")){
+      if(line[1].equals("0")){ //not walking
+        message = "You are resting";
+      }
+      else if(line[1].equals("1")) { //walking
+        walking = "You are walking";
+        time = line[2];
+      }
     }
     
   }//END OF if(inString != NULL)
@@ -216,17 +296,44 @@ void serialEvent (Serial port) {
 //Button functions
 void normalgait(){
   println("Normal gait button press");
+  port.write("N");
 }
 void intoe(){
   println("In-Toe gait button press");
+  port.write("I");
 }
 void outtoe(){
   println("Out-Toe gait button press");
+  port.write("O");
 }
 void heel(){
   println("Heel gait button press");
+  port.write("H");
 }
 void tiptoe(){
   println("Tiptoe gait button press");
+  port.write("T");
 }
+void configure(){
+  println("Configure motion button press");
+  port.write("C");
+}
+void reset(){
+  println("Reset button press");
+  port.write("R");
+  
+  step_count = "0";
+  step_length = "0";
+  stride_length = "0";
+  time = "0";
+  speed = "0";
+  diagnoses = "Unknown";
+  message = "";
+  
+}
+void diagnose(){
+  println("Diagnose button press");
+  port.write("D");
+}
+
 //=============================================================================================
