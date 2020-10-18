@@ -52,10 +52,10 @@ void setup() {
   
   printArray(Serial.list());
   port = new Serial(this, "COM5", 115200); //make sure to change to your port connected to device
+  //port = new Serial(this, "/dev/cu.usbmodem123456781", 115200); //make sure to change to your port connected to device
   port.bufferUntil('\n');
   
-  size(1650,830);
-  foot_img = loadImage("foot.png");
+   foot_img = loadImage("foot.png");
   
   // Create the font
   font = createFont("SourceCodePro-Regular.ttf", 36);
@@ -115,11 +115,15 @@ void setup() {
    .setPosition(1245,530)
    .setSize(350,40)
    .setFont(button_font2)
-   ;
-  
+   ; 
+
+  delay(1000);
 }
 
 //=============================================================================================
+public void settings() {
+  size(1650, 830);
+}
 
 void draw() {
   
@@ -246,7 +250,7 @@ void serialEvent (Serial port) {
     mode = line[0];
   
     //pressure mode
-    if(mode.equals("P:")){
+    if(mode.indexOf("P:") != -1){
       //pressure values in order of MF LF MM Heel 
       mf = Integer.valueOf(line[1]);
       mf = int(ceil(map(mf, 0, 1023, 10, 130)));
@@ -260,16 +264,16 @@ void serialEvent (Serial port) {
       heel = Integer.valueOf(line[4]);
       heel = int(ceil(map(heel, 0, 1023, 10, 130)));
     }   
-    if(mode.equals("S1:")){
+    if(mode.indexOf("S1:") != -1){
       step_length = line[1];
       stride_length = line[2];
       speed = line[3];
       step_count = line[4];
     }
-    if(mode.equals("S2:")){
+    if(mode.indexOf("S2:") != -1){
       message = "";
       //if next element if F then final diagnoses follows
-      if(line[1].equals("F")) { 
+      if(line[1].indexOf("F") != -1) { 
         diagnoses = line[2];
         message = "The final diagnoses is " + line[2];
       }
@@ -280,17 +284,21 @@ void serialEvent (Serial port) {
         }
       }
     }
-    if(mode.equals("S3:")){
-      if(line[1].equals("0")){ //not walking
+    if(mode.indexOf("S3:") != -1){
+      if(line[1].indexOf("0")!=-1){ //not walking
         message = "You are resting";
       }
-      else if(line[1].equals("1")) { //walking
+      else if(line[1].indexOf("1")!=-1) { //walking
         walking = "You are walking";
         time = line[2];
       }
     }
     
   }//END OF if(inString != NULL)
+  else{
+      println("Serial is null");
+
+  }
 }
 //=============================================================================================
 //Button functions
