@@ -56,10 +56,10 @@ float percent_diff_tiptoe = 0;
 float percent_diff_heel = 0;
 
 //LED pin numbers
-int ledR = 8;
-int ledY = 7;
-int ledG = 6;
-int ledB = 5;
+int led_mm = 8;
+int led_mf = 7;
+int led_lf = 6;
+int led_heel = 5;
 
 //Serial communication value
 String val = "";
@@ -87,10 +87,10 @@ void setup() {
   Serial.println("");
   delay(100);
   
-  pinMode(ledR, OUTPUT);
-  pinMode(ledY, OUTPUT);
-  pinMode(ledG, OUTPUT);
-  pinMode(ledB, OUTPUT);
+  pinMode(led_mm, OUTPUT);
+  pinMode(led_mf, OUTPUT);
+  pinMode(led_lf, OUTPUT);
+  pinMode(led_heel, OUTPUT);
   
 }
 void loop() {
@@ -110,9 +110,11 @@ void loop() {
   else if(val == 'D' && is_ready()){
     diagnose();
   }
-  else if(is_ready()){
+  else if(is_ready()){ 
     readFSR();
     readMotion();
+    lightLED();
+    
     sendMotion();
     sendFSR();
   }
@@ -127,8 +129,8 @@ void readFSR() {
   LF = analogRead(lf);
   MM = analogRead(mm);
   HEEL = analogRead(heel);
+  
 }
-
 void sendFSR(){
   Serial.print("P: ");
   Serial.print(MF); Serial.print(" ");
@@ -136,7 +138,13 @@ void sendFSR(){
   Serial.print(MM); Serial.print(" ");
   Serial.println(HEEL); 
 }
-
+void lightLED(){
+  // analogRead values go from 0 to 1023, analogWrite values from 0 to 255
+  analogWrite(led_mm, MM / 4); 
+  analogWrite(led_mf, MF / 4); 
+  analogWrite(led_lf, LF / 4); 
+  analogWrite(led_heel, HEEL / 4);   
+}
 void readMotion(){
   //get new sensor event
   sensors_event_t a, g, temp;
