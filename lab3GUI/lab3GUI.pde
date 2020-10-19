@@ -1,13 +1,18 @@
 import processing.serial.*;
 import controlP5.*;
 
-//Globals
+//Globals for GUI
 ControlP5 cp5;
-ControlTimer timer;
-Serial port;
+PImage foot_img;
 PFont font;
 PFont button_font;
 PFont button_font2;
+String message = "Updates will diplay here...";
+
+//Serial communication variables
+String[] line;
+Serial port;
+String mode;
 
 //user stats
 String step_count = "0";
@@ -17,19 +22,6 @@ String time = "0";
 String speed = "0";
 String walking = "";
 String diagnoses = "Unknown";
-String message = "";
-
-//input line from Serial
-String[] line;
-String mode;
-PImage foot_img;
-
-//Graph variables
-int xPos = 900;
-int yPos = 450;
-int xEdge = 1600;
-int Index;
-boolean newData = false;
 
 //Pressure readings for different foot area
 //the value will manipulate circle size
@@ -46,16 +38,28 @@ int point_lf;
 int heel = 10;
 int point_heel;
 
+//Graph variables
+int xPos = 900;
+int yPos = 450;
+int xEdge = 1600;
+int Index;
+boolean newData = false;
+ArrayList<Float> currentLF;
+ArrayList<Float> currentMF;
+ArrayList<Float> currentMM;
+ArrayList<Float> currentHEEL;
+ArrayList<Integer> current_xAxis;
+
 //=============================================================================================
 
 void setup() {
   
   printArray(Serial.list());
-  port = new Serial(this, "COM5", 115200); //make sure to change to your port connected to device
+  //port = new Serial(this, "COM3", 115200); //make sure to change to your port connected to device
   //port = new Serial(this, "/dev/cu.usbmodem123456781", 115200); //make sure to change to your port connected to device
-  port.bufferUntil('\n');
+  //port.bufferUntil('\n');
   
-   foot_img = loadImage("foot.png");
+  foot_img = loadImage("foot.png");
   
   // Create the font
   font = createFont("SourceCodePro-Regular.ttf", 36);
@@ -64,7 +68,6 @@ void setup() {
   smooth();
   cp5 = new ControlP5(this);
   
-
   button_font = createFont("SourceCodePro-Regular.ttf", 20);
   button_font2 = createFont("SourceCodePro-Regular.ttf", 30);
   // create a new button with name 'buttonA'
@@ -129,19 +132,19 @@ void draw() {
   
   background(181,211,231);
   
-  fill(200,0,0);                //covers set gait button area
-  rect(900, 470, 280, 210, 7); 
+  fill(200,0,0);                //covers set gait button area, RED box
+  rect(900, 470, 270, 210, 7); 
       
-  fill(100,220,100);            //covers diagnose button area
+  fill(100,220,100);            //covers diagnose button area, GREEN box
   rect(1235, 600, 370, 60, 7);
   
-  fill(0,100,200);              //covers reset/configure button area
+  fill(0,100,200);              //covers reset/configure button area, BLUE box
   rect(1235, 470, 370, 110, 7);
   
-  fill(240,240,100);            //cover instructions
+  fill(240,240,100);            //cover instructions, YELLOW box
   rect(900, 695, 705, 120,7);
   
-  fill(250);                    //updates area
+  fill(250);                    //updates area, WHITE box
   rect(380, 695, 480, 120, 7);
   
   fill(0);                      //Instructions for GUI
@@ -181,18 +184,18 @@ void draw() {
   
   //draw circle for heel, RED color
   fill(255,0,0);
-  circle(200, 700, heel);
+  circle(210, 690, heel);
   
   //draw circle for mm, BLUE color
   fill(0, 0, 255);
-  circle(280, 400, mm);
+  circle(280, 410, mm);
   
   //draw circle for mf, GREEN color
   fill(80, 220, 100);
   circle(200, 280, mf);
   
   //draw circle for lf, ORANGE color
-  fill(255, 165, 0);
+  fill(255, 175, 0);
   circle(140, 480, lf);
   
 //-----------------------Area for graph----------------------------------------
@@ -204,18 +207,39 @@ void draw() {
   if(xPos + Index > xEdge) {
     Index = 0;
   }
-  circle(xPos + Index, yPos - heel, 10); //heel
-
+  /*
+  ArrayList<Float> currentLF;
+ArrayList<Float> currentMF;
+ArrayList<Float> currentMM;
+ArrayList<Float> currentHEEL;
+ArrayList<Integer> current_xAxis;*/
+/*
+  if(newData){
+    for(int i = 0; i < current_xAxis.size(); i++){
+      circle();             
+    }
+    if(Index >= xEdge){ //at edge of screen
+      Index = 0;
+      current_xAxis = new ArrayList<Integer>();
+      currentMM = new ArrayList<Float>();
+    }
+  }
+  */
+  float heel_new = map(heel,10,150,10,255);
+  circle(xPos + Index, yPos - heel_new, 10); //heel
 
   fill(0, 0, 255);
-  circle(xPos + Index, yPos - mm, 10); //mm
-  
+  float mm_new = map(mm,10,150,10,255);
+  circle(xPos + Index, yPos - mm_new, 10); //mm
 
   fill(0, 255, 0);
-  circle(xPos + Index, yPos - mf, 10); //mf
+  float mf_new = map(mf,10,150,10,255);
+  circle(xPos + Index, yPos - mf_new, 10); //mf
 
   fill(255, 165, 0);
-  circle(xPos + Index, yPos - lf, 10); //lf
+  float lf_new = map(lf,10,150,10,255);
+  circle(xPos + Index, yPos - lf_new, 10); //lf  
+  
   Index+=1;
 //--------------------User info display area-----------------------------------
   fill(0);
@@ -231,7 +255,6 @@ void draw() {
   text("Updates:", 400, 730);
   textSize(20);
   text(message,400,770); 
-  text("Updates will diplasy here....",400,770);
 }
 
 //=============================================================================================
@@ -253,17 +276,21 @@ void serialEvent (Serial port) {
     if(mode.indexOf("P:") != -1){
       //pressure values in order of MF LF MM Heel 
       mf = Integer.valueOf(line[1]);
-      mf = int(ceil(map(mf, 0, 1023, 10, 130)));
+      mf = int(ceil(map(mf, 0, 1023, 10, 150)));
+      currentMF.add(map(mf,10,150,10,290));
       
       lf = Integer.valueOf(line[2]);
-      lf = int(ceil(map(lf, 0, 1023, 10, 130)));
+      lf = int(ceil(map(lf, 0, 1023, 10, 150)));
+      currentLF.add(map(lf,10,150,10,290));
       
       mm = Integer.valueOf(line[3]);
-      mm = int(ceil(map(mm, 0, 1023, 10, 130)));
+      mm = int(ceil(map(mm, 0, 1023, 10, 150)));
+      currentMM.add(map(mm,10,150,10,290));
       
       heel = Integer.valueOf(line[4]);
-      heel = int(ceil(map(heel, 0, 1023, 10, 130)));
-    }   
+      heel = int(ceil(map(heel, 0, 1023, 10, 150)));
+      currentHEEL.add(map(heel,10,150,10,290));
+    }  
     if(mode.indexOf("S1:") != -1){
       step_length = line[1];
       stride_length = line[2];
@@ -272,7 +299,7 @@ void serialEvent (Serial port) {
     }
     if(mode.indexOf("S2:") != -1){
       message = "";
-      //if next element if F then final diagnoses follows
+      //if next element is F then final diagnoses follows
       if(line[1].indexOf("F") != -1) { 
         diagnoses = line[2];
         message = "The final diagnoses is " + line[2];
@@ -297,33 +324,38 @@ void serialEvent (Serial port) {
   }//END OF if(inString != NULL)
   else{
       println("Serial is null");
-
   }
 }
 //=============================================================================================
 //Button functions
 void normalgait(){
   println("Normal gait button press");
+  message = "Updates will diplay here...";
   port.write("N");
 }
 void intoe(){
   println("In-Toe gait button press");
+  message = "Updates will diplay here...";
   port.write("I");
 }
 void outtoe(){
   println("Out-Toe gait button press");
+  message = "Updates will diplay here...";
   port.write("O");
 }
 void heel(){
   println("Heel gait button press");
+  message = "Updates will diplay here...";
   port.write("H");
 }
 void tiptoe(){
   println("Tiptoe gait button press");
+  message = "Updates will diplay here...";
   port.write("T");
 }
 void configure(){
   println("Configure motion button press");
+  message = "Updates will diplay here...";
   port.write("C");
 }
 void reset(){
@@ -336,11 +368,12 @@ void reset(){
   time = "0";
   speed = "0";
   diagnoses = "Unknown";
-  message = "";
+  message = "Updates will diplay here...";
   
 }
 void diagnose(){
   println("Diagnose button press");
+  message = "Updates will diplay here...";
   port.write("D");
 }
 

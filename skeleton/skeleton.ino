@@ -3,10 +3,11 @@
 #include <Wire.h>
 
 //FSR sensor pins
-#define mf A0
-#define lf A1
-#define mm A2
-#define heel A3
+int mf_pin = 0;
+int lf_pin = 1;
+int mm_pin = 2;
+int heel_pin = 3;
+
 
 //accelorometer information 
 Adafruit_MPU6050 mpu;
@@ -56,10 +57,12 @@ float percent_diff_tiptoe = 0;
 float percent_diff_heel = 0;
 
 //LED pin numbers
-int led_mm = 8;
-int led_mf = 7;
-int led_lf = 6;
-int led_heel = 5;
+int led_mm = 5;
+//int led_mf = 9; // juan
+//int led_lf = 7; // juan
+int led_mf = 11; //angy, david
+int led_lf = 9;  //angy, david
+int led_heel = 3;
 
 //Serial communication value
 int val;
@@ -129,10 +132,10 @@ void calcMFP(){
 }
 
 void readFSR() {
-  MF = analogRead(mf);
-  LF = analogRead(lf);
-  MM = analogRead(mm);
-  HEEL = analogRead(heel);
+  MF = analogRead(mf_pin);
+  LF = analogRead(lf_pin);
+  MM = analogRead(mm_pin);
+  HEEL = analogRead(heel_pin);
   
 }
 void sendFSR(){
@@ -192,6 +195,7 @@ void sendMotion(){
   }
 }
 void configureMotion(){
+  
   starttime = millis();
   endtime = starttime;
 
@@ -213,11 +217,13 @@ void configureMotion(){
   xSet = sum_x/count;
   ySet = sum_y/count;
   zSet = sum_z/count;
-  is_motion = true;
+  is_config = true;
+  
 }
 
 //Input is a char of the MFP walk/gait type we are measuring
 void configureMFP(int gait_type){
+  sendMessage("Starting to configure gait...");//sending starting configuration
   starttime = millis();
   endtime = starttime;
 
@@ -245,31 +251,35 @@ void configureMFP(int gait_type){
   //get average MFP by dividing sum by amount of values
   avgMFP = sumMFP/counter;
 
-  Serial.print(gait_type);
-  Serial.print(" ");
-  Serial.println(MFP);
-
+  String gait = "";
   //TODO put in the char that represent this gait
   if(gait_type == 'N'){ //normal
+    gait = "normal";
     mfp_normal = MFP;
     is_normal = true;
   }
   else if(gait_type == 'I'){ //intoe
+    gait = "in-toe";
     mfp_intoe = MFP;
     is_intoe = true;
   }
   else if(gait_type == 'O'){ //outtoe
+    gait = "out-toe";
     mfp_outtoe = MFP;
     is_outtoe = true;
   }
   else if(gait_type == 'T'){ //tiptoe
+    gait = "tip-toe";
     mfp_tiptoe = MFP;
     is_tiptoe = true;
   }
   else if(gait_type == 'H'){ //heel
+    gait = "heel";
     mfp_heel = MFP;
     is_heel = true;
   }
+  String m = "Finished configuring " + gait + " gait";
+  sendMessage(m);  
 }
 
 String get_walk_type(float mfp){
@@ -375,4 +385,8 @@ bool is_ready(){
   else{
     return false;
   }
+}
+void sendMessage(String m){
+  Serial.print("M: ");
+  Serial.println(m);
 }
