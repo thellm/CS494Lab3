@@ -55,9 +55,9 @@ ArrayList<Integer> current_xAxis;
 void setup() {
   
   printArray(Serial.list());
-  //port = new Serial(this, "COM3", 115200); //make sure to change to your port connected to device
-  //port = new Serial(this, "/dev/cu.usbmodem123456781", 115200); //make sure to change to your port connected to device
-  //port.bufferUntil('\n');
+  port = new Serial(this, "COM3", 115200); //make sure to change to your port connected to device
+  // port = new Serial(this, "/dev/cu.usbmodem123456781", 115200); //make sure to change to your port connected to device
+  port.bufferUntil('\n');
   
   foot_img = loadImage("foot.png");
   

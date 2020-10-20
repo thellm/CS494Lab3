@@ -49,13 +49,6 @@ float mfp_outtoe = 0;
 float mfp_tiptoe = 0;
 float mfp_heel = 0;
 
-//percent difference between set mfp gait values and calculation
-float percent_diff_normal = 0;
-float percent_diff_intoe = 0;
-float percent_diff_outtoe = 0;
-float percent_diff_tiptoe = 0;
-float percent_diff_heel = 0;
-
 //LED pin numbers
 int led_mm = 5;
 //int led_mf = 9; // juan
@@ -94,7 +87,6 @@ void setup() {
   pinMode(led_mf, OUTPUT);
   pinMode(led_lf, OUTPUT);
   pinMode(led_heel, OUTPUT);
-  
 }
 void loop() {
   
@@ -104,27 +96,23 @@ void loop() {
   if(val == 'C') {  //configure motion sensor
     configureMotion();
   }
-  else if(val == 'N'||val == 'I'||val == 'O'||val == 'T'||val == 'H'){ //configure gait
+  if(val == 'N'||val == 'I'||val == 'O'||val == 'T'||val == 'H'){ //configure gait
     configureMFP(val);
   }
-  else if(val == 'R'){
+  if(val == 'R'){
     reset();
   }
-  else if(val == 'D' && is_ready()){
+  if(val == 'D'){
     diagnose();
   }
-  else if(is_ready()){ 
-    readFSR();
-    readMotion();
-    lightLED();
-    
-    sendMotion();
-    sendFSR();
-  }
-  //uncomment to debug accelometer
-  //sendMotion();
-
- 
+  
+  readFSR();
+  delay(10);
+  sendFSR();
+  delay(10);
+  readMotion();
+  delay(10);
+  sendMotion();
 }
 
 void calcMFP(){
@@ -136,6 +124,12 @@ void readFSR() {
   LF = analogRead(lf_pin);
   MM = analogRead(mm_pin);
   HEEL = analogRead(heel_pin);
+
+  analogWrite(led_mm, MM / 4); 
+  analogWrite(led_mf, MF / 4); 
+  analogWrite(led_lf, LF / 4); 
+  analogWrite(led_heel, HEEL / 4); 
+
   
 }
 void sendFSR(){
@@ -144,13 +138,6 @@ void sendFSR(){
   Serial.print(LF); Serial.print(" ");
   Serial.print(MM); Serial.print(" ");
   Serial.println(HEEL); 
-}
-void lightLED(){
-  // analogRead values go from 0 to 1023, analogWrite values from 0 to 255
-  analogWrite(led_mm, MM / 4); 
-  analogWrite(led_mf, MF / 4); 
-  analogWrite(led_lf, LF / 4); 
-  analogWrite(led_heel, HEEL / 4);   
 }
 void readMotion(){
   //get new sensor event
@@ -170,8 +157,6 @@ void sendMotion(){
   float diff_z = 0;
   
   Serial.print("S3: ");
-
-  readMotion(); //read motion data
 
   //if the difference between configured set data and data read has a difference then in motion
   diff_x = abs(xSet - x); 
@@ -283,6 +268,12 @@ void configureMFP(int gait_type){
 }
 
 String get_walk_type(float mfp){
+  //percent difference between set mfp gait values and calculation
+  float percent_diff_normal = 0;
+  float percent_diff_intoe = 0;
+  float percent_diff_outtoe = 0;
+  float percent_diff_tiptoe = 0;
+  float percent_diff_heel = 0;
   
   int mini = 1;
   
@@ -377,14 +368,6 @@ void reset(){ //resetting stats
   is_heel = false;
   is_config = false;
   
-}
-bool is_ready(){
-  if(is_normal && is_intoe && is_outtoe && is_tiptoe && is_heel && is_config){
-    return true;
-  }
-  else{
-    return false;
-  }
 }
 void sendMessage(String m){
   Serial.print("M: ");
