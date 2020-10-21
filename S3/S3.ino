@@ -5,8 +5,8 @@
 #include <Wire.h>
 
 Adafruit_MPU6050 mpu;
-int xSet =0;
-int ySet =0;
+int xSet = 0;
+int ySet = 0;
 int zSet = 6;
 
 void setup(void) {
@@ -37,18 +37,18 @@ void loop() {
   mpu.getEvent(&a, &g, &temp);
 
   /* Print out the values */
-//  Serial.print(a.acceleration.x);
-//  Serial.print(",");
-//  Serial.print(a.acceleration.y);
-//  Serial.print(",");
-//  Serial.print(a.acceleration.z);
+  //  Serial.print(a.acceleration.x);
+  //  Serial.print(",");
+  //  Serial.print(a.acceleration.y);
+  //  Serial.print(",");
+  //  Serial.print(a.acceleration.z);
 
-  if(xSet > 1 || xset < -1
-  || ySet > 1 || ySet < -1 
-  || zSet > 7 || zSet < 5 ){
-      Serial.print("S3: 0 "+xSet);
-  }else{
-      Serial.print("S3: 1  0.0");
+  if (xSet > 1 || xset < -1
+      || ySet > 1 || ySet < -1
+      || zSet > 7 || zSet < 5 ) {
+    Serial.print("S3: 0 " + xSet);
+  } else {
+    Serial.print("S3: 1  0.0");
   }
   Serial.println("");
 

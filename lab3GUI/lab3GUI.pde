@@ -1,3 +1,4 @@
+import apsync.*;
 import processing.serial.*;
 import controlP5.*;
 
@@ -10,6 +11,7 @@ PFont button_font2;
 String message = "Updates will diplay here...";
 
 //Serial communication variables
+AP_Sync streamer;
 String[] line;
 Serial port;
 String mode;
@@ -18,10 +20,13 @@ String mode;
 String step_count = "0";
 String step_length = "0";
 String stride_length = "0";
-String time = "0";
+String time = "";
 String speed = "0";
 String walking = "";
 String diagnoses = "Unknown";
+String hour = "0";
+String minute = "0";
+String second = "0";
 
 //Pressure readings for different foot area
 //the value will manipulate circle size
@@ -42,13 +47,26 @@ int point_heel;
 int xPos = 900;
 int yPos = 450;
 int xEdge = 1600;
-int Index;
-boolean newData = false;
-ArrayList<Float> currentLF;
-ArrayList<Float> currentMF;
-ArrayList<Float> currentMM;
-ArrayList<Float> currentHEEL;
-ArrayList<Integer> current_xAxis;
+
+ArrayList<Integer> currentLF = new ArrayList<Integer>();
+ArrayList<Integer> current_LFAxis = new ArrayList<Integer>();
+int LFIndex;
+boolean newDataLF = false;
+
+ArrayList<Integer> currentMF = new ArrayList<Integer>();
+ArrayList<Integer> current_MFAxis = new ArrayList<Integer>();
+int MFIndex;
+boolean newDataMF = false;
+
+ArrayList<Integer> currentMM = new ArrayList<Integer>();
+ArrayList<Integer> current_MMAxis = new ArrayList<Integer>();
+int MMIndex;
+boolean newDataMM = false;
+
+ArrayList<Integer> currentHEEL = new ArrayList<Integer>();
+ArrayList<Integer> current_HEELAxis = new ArrayList<Integer>();
+int HEELIndex;
+boolean newDataHEEL = false;
 
 //=============================================================================================
 
@@ -56,16 +74,15 @@ void setup() {
   
   printArray(Serial.list());
   port = new Serial(this, "COM3", 115200); //make sure to change to your port connected to device
+  //streamer = new AP_Sync(this, "COM3", 115200);
   // port = new Serial(this, "/dev/cu.usbmodem123456781", 115200); //make sure to change to your port connected to device
   port.bufferUntil('\n');
   
   foot_img = loadImage("foot.png");
-  
+  frameRate(10);
   // Create the font
   font = createFont("SourceCodePro-Regular.ttf", 36);
   textFont(font);
-  frameRate(25);
-  smooth();
   cp5 = new ControlP5(this);
   
   button_font = createFont("SourceCodePro-Regular.ttf", 20);
@@ -182,65 +199,103 @@ void draw() {
 //------------foot imaging area------------------------------------------------
   image(foot_img, 10, 100, width/4.5, 700);
   
+//-----------------------Area for graph----------------------------------------
+ 
+  fill(235);
+  rect(890, 135, 340, 150, 7);  //LF
+  rect(1240, 135, 340, 150, 7); //MF
+  rect(890, 305, 340, 150, 7); // MM
+  rect(1240, 305, 340, 150, 7); //HEEL
+  textSize(30); 
+  fill(0);
+  text("HEEL", 1250, 340);
+  text("MF", 1250, 170);
+  text("LF", 900, 170);
+  text("MM", 900, 340);
+  
+  fill(255,0,0);
+
+  textSize(35); 
   //draw circle for heel, RED color
   fill(255,0,0);
   circle(210, 690, heel);
+  fill(250);
+  text("HEEL", 170, 740);
   
   //draw circle for mm, BLUE color
   fill(0, 0, 255);
-  circle(280, 410, mm);
-  
+  circle(260, 490, mm);
+  fill(250);
+  text("MM", 240, 530);
+    
   //draw circle for mf, GREEN color
   fill(80, 220, 100);
   circle(200, 280, mf);
+  fill(250);
+  text("MF", 180, 320);
   
   //draw circle for lf, ORANGE color
   fill(255, 175, 0);
-  circle(140, 480, lf);
+  circle(110, 420, lf);
+  fill(250);
+  text("LF", 90, 460);
   
-//-----------------------Area for graph----------------------------------------
-  fill(235);
-  rect(900, 150, 705, 300, 7);
-  
-  fill(255,0,0);
-  
-  if(xPos + Index > xEdge) {
-    Index = 0;
-  }
-  /*
-  ArrayList<Float> currentLF;
-ArrayList<Float> currentMF;
-ArrayList<Float> currentMM;
-ArrayList<Float> currentHEEL;
-ArrayList<Integer> current_xAxis;*/
-/*
-  if(newData){
-    for(int i = 0; i < current_xAxis.size(); i++){
-      circle();             
+  if(newDataHEEL){
+    for(int i = 0; i < currentHEEL.size(); i++){
+      fill(255,0,0);
+      circle(current_HEELAxis.get(i), 450 - currentHEEL.get(i), 5);
     }
-    if(Index >= xEdge){ //at edge of screen
-      Index = 0;
-      current_xAxis = new ArrayList<Integer>();
-      currentMM = new ArrayList<Float>();
+    if(HEELIndex + xPos > 1210){
+      HEELIndex = 0;
+      currentHEEL = new ArrayList<Integer>();
+      current_HEELAxis = new ArrayList<Integer>();
     }
+    else{ HEELIndex+=10; }
+    newDataHEEL = false;
   }
-  */
-  float heel_new = map(heel,10,150,10,255);
-  circle(xPos + Index, yPos - heel_new, 10); //heel
-
-  fill(0, 0, 255);
-  float mm_new = map(mm,10,150,10,255);
-  circle(xPos + Index, yPos - mm_new, 10); //mm
-
-  fill(0, 255, 0);
-  float mf_new = map(mf,10,150,10,255);
-  circle(xPos + Index, yPos - mf_new, 10); //mf
-
-  fill(255, 165, 0);
-  float lf_new = map(lf,10,150,10,255);
-  circle(xPos + Index, yPos - lf_new, 10); //lf  
   
-  Index+=1;
+  if(newDataMM){
+    for(int i = 0; i < currentMM.size(); i++){
+      fill(0, 0, 255);
+      circle(current_MMAxis.get(i), 450 - currentMM.get(i), 5);
+    }
+    if(MMIndex  + xPos > 1210){
+      MMIndex = 0;
+      currentMM = new ArrayList<Integer>();
+      current_MMAxis = new ArrayList<Integer>();
+    }
+    else{ MMIndex+=10; }
+    newDataMM = false;
+  }
+  
+  if(newDataMF){
+    for(int i = 0; i < currentMF.size(); i++){
+      fill(80, 220, 100);
+      circle(current_MFAxis.get(i), 280 - currentMF.get(i), 5);
+    }
+    if(MFIndex + xPos > 1210){
+      MFIndex = 0;
+      currentMF = new ArrayList<Integer>();
+      current_MFAxis = new ArrayList<Integer>();
+    }
+    else{ MFIndex+=10; }
+    newDataMF = false;    
+  }
+  
+  if(newDataLF){
+    for(int i = 0; i < currentLF.size(); i++){
+      fill(255, 175, 0);
+      circle(current_LFAxis.get(i), 280 - currentLF.get(i), 5);
+    }
+    if(LFIndex + xPos > 1210){
+      LFIndex = 0;
+      currentLF = new ArrayList<Integer>();
+      current_LFAxis = new ArrayList<Integer>();
+    }
+    else{ LFIndex+=10; }
+    newDataLF = false;
+  }
+
 //--------------------User info display area-----------------------------------
   fill(0);
  
@@ -248,6 +303,7 @@ ArrayList<Integer> current_xAxis;*/
   text("Step Count: ", 400, 200); text(step_count, 700, 200);
   text("Step Length: ", 400, 250); text(step_length, 700, 250);
   text("Stride Length: ", 400, 300); text(stride_length, 700, 300);
+  time = hour + ":" + minute + ":" + second;
   text("Time: ", 400, 350); text(time, 700, 350);   
   text("Cadence: ", 400, 400); text(speed, 700, 400);
   text("Gait: ", 400, 450); text(diagnoses, 700, 450);
@@ -261,101 +317,99 @@ ArrayList<Integer> current_xAxis;*/
 
 //Capture serial information
 void serialEvent (Serial port) { 
-  //read in string until newline
-  String inString = port.readStringUntil('\n');
-   
-  if (inString != null) {
-    //remove whitespace
-    inString = trim(inString); 
-    line =  splitTokens(inString);
-  
-  
-    mode = line[0];
-  
-    //pressure mode
-    if(mode.indexOf("P:") != -1){
-      //pressure values in order of MF LF MM Heel 
-      mf = Integer.valueOf(line[1]);
-      mf = int(ceil(map(mf, 0, 1023, 10, 150)));
-      currentMF.add(map(mf,10,150,10,290));
-      
-      lf = Integer.valueOf(line[2]);
-      lf = int(ceil(map(lf, 0, 1023, 10, 150)));
-      currentLF.add(map(lf,10,150,10,290));
-      
-      mm = Integer.valueOf(line[3]);
-      mm = int(ceil(map(mm, 0, 1023, 10, 150)));
-      currentMM.add(map(mm,10,150,10,290));
-      
-      heel = Integer.valueOf(line[4]);
-      heel = int(ceil(map(heel, 0, 1023, 10, 150)));
-      currentHEEL.add(map(heel,10,150,10,290));
-    }  
-    if(mode.indexOf("S1:") != -1){
-      step_length = line[1];
-      stride_length = line[2];
-      speed = line[3];
-      step_count = line[4];
-    }
-    if(mode.indexOf("S2:") != -1){
-      message = "";
-      //if next element is F then final diagnoses follows
-      if(line[1].indexOf("F") != -1) { 
-        diagnoses = line[2];
-        message = "The final diagnoses is " + line[2];
-      }
-      else {
-        //get the message
-        for(int i = 1; i < line.length; i++ ){
-          message = message + " " + line [i]; 
-        }
-      }
-    }
-    if(mode.indexOf("S3:") != -1){
-      if(line[1].indexOf("0")!=-1){ //not walking
-        message = "You are resting";
-      }
-      else if(line[1].indexOf("1")!=-1) { //walking
-        walking = "You are walking";
-        time = line[2];
-      }
-    }
+   try{ 
+    //read in string until newline
+    String inString = port.readStringUntil('\n');
     
-  }//END OF if(inString != NULL)
-  else{
-      println("Serial is null");
-  }
+    if (inString != null) {
+      //remove whitespace
+      inString = trim(inString); 
+      line =  splitTokens(inString);
+  
+  
+      if(line[0].indexOf("MM:") != -1){
+        mm = Integer.valueOf(line[1]);
+        mm = int(map(mm, 0, 1023, 10, 150));
+        currentMM.add(int(map(mm, 10, 150, 0, 50)));
+        current_MMAxis.add(900 + MMIndex);
+        newDataMM = true;
+      }
+      if(line[0].indexOf("MF:") != -1){
+        mf = Integer.valueOf(line[1]);
+        mf = int(ceil(map(mf, 0, 1023, 10, 150)));
+        currentMF.add(int(map(mf,10,150,0, 50)));
+        current_MFAxis.add(1250 + MFIndex);
+        newDataMF = true;
+      }
+      if(line[0].indexOf("LF:") != -1){
+        lf = Integer.valueOf(line[1]);
+        lf = int(ceil(map(lf, 0, 1023, 10, 150)));
+        currentLF.add(int(map(lf,10,150,0, 50)));
+        current_LFAxis.add(900 + LFIndex);
+        newDataLF = true;
+      }
+      if(line[0].indexOf("HEEL:") != -1){
+        heel = Integer.valueOf(line[1]);
+        heel = int(ceil(map(heel, 0, 1023, 10, 150)));
+        currentHEEL.add(int(map(heel,10,150,0, 50)));
+        current_HEELAxis.add(1250 + HEELIndex);
+        newDataHEEL = true;
+      }   
+      if(line[0].indexOf("STEPCOUNT:") != -1){
+        step_count = line[1];
+      }  
+      if(line[0].indexOf("HOUR:") != -1){
+        hour = line[1];
+      }
+      if(line[0].indexOf("SECOND:") != -1){
+        second = line[1];
+      }
+      if(line[0].indexOf("MINUTE:") != -1){
+        minute = line[1];
+      }
+      if(line[0].indexOf("S3:") != -1){
+        if(line[1].equals("0")){walking = "Standing Still";}
+        else{walking = "In Motion!";}
+      }
+    }//END OF if(inString != NULL)
+    else{
+        println("Serial is null");
+    }
+   }
+   catch(RuntimeException e){
+     e.printStackTrace();
+   }
 }
 //=============================================================================================
 //Button functions
 void normalgait(){
   println("Normal gait button press");
-  message = "Updates will diplay here...";
+  message = "Calculating normal gait MFP";
   port.write("N");
 }
 void intoe(){
   println("In-Toe gait button press");
-  message = "Updates will diplay here...";
+  message = "Calculating in-toe gait MFP";
   port.write("I");
 }
 void outtoe(){
   println("Out-Toe gait button press");
-  message = "Updates will diplay here...";
+  message = "Calculating out-toe gait MFP";
   port.write("O");
 }
 void heel(){
   println("Heel gait button press");
-  message = "Updates will diplay here...";
+  message = "Calculating heel gait MFP";
   port.write("H");
 }
 void tiptoe(){
   println("Tiptoe gait button press");
-  message = "Updates will diplay here...";
+  message = "Calculating tiptoe gait MFP";
   port.write("T");
 }
 void configure(){
   println("Configure motion button press");
-  message = "Updates will diplay here...";
+  message = "Updates will display here...";
   port.write("C");
 }
 void reset(){
@@ -368,13 +422,11 @@ void reset(){
   time = "0";
   speed = "0";
   diagnoses = "Unknown";
-  message = "Updates will diplay here...";
+  message = "Updates will display here";
   
 }
 void diagnose(){
   println("Diagnose button press");
-  message = "Updates will diplay here...";
+  message = "Diagnosing...";
   port.write("D");
 }
-
-//=============================================================================================

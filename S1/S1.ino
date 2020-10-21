@@ -5,11 +5,9 @@
 #include <MPU6050_tockn.h>
 #include <Wire.h>
 
-
-
 Adafruit_MPU6050 mpu;
-int xSet =0;
-int ySet =0;
+int xSet = 0;
+int ySet = 0;
 int zSet = 6;
 
 //variables to store measurements and time
@@ -42,39 +40,35 @@ void setup(void) {
   Serial.println("");
   delay(100);
 
-Wire.begin();
+  Wire.begin();
   mpu6050.begin();
   mpu6050.calcGyroOffsets(true);
 }
 
 void loop() {
 
-mpu6050.update();
+  mpu6050.update();
 
-time1 = millis();
+  time1 = millis();
   /* Get new sensor events with the readings */
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
-  
-
-  if(millis() - timer > 1000){
-    
-
-    Serial.print("\taccY : ");Serial.print(mpu6050.getAccY());   
+  if (millis() - timer > 1000) {
+    Serial.print("\taccY : "); Serial.print(mpu6050.getAccY());
   }
-if(mpu6050.getAccY()>1)
-{
+  if (mpu6050.getAccY() > 1)
+  {
 
-totalSteps += 1;
-time2 = millis();
-interval = time2 - time1;
-stepL = (1/2)*mpu6050.getAccY()*sq(interval);
-strideL = 2 * stepL;
+    totalSteps += 1;
+    time2 = millis();
+    interval = time2 - time1;
+    stepL = (1 / 2) * mpu6050.getAccY() * sq(interval);
+    strideL = 2 * stepL;
 
-delay(350);
+    delay(350);
 
-}
+  }
 
 
 

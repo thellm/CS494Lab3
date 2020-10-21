@@ -2,6 +2,8 @@
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
 
+
+
 //FSR sensor pins
 int mf_pin = 0;
 int lf_pin = 1;
@@ -34,13 +36,17 @@ bool is_heel = false;
 bool is_config = false;
 
 int counter = 0; // counts iterations of loop
-float sumMFP = 0; // calculation of MFP for current loop iteration
-float avgMFP = 0; //calculation for average MFP
-float MFP = 0; // final value for MFP
-float MF = 0; // Medial Forefoot FSR value
-float LF = 0; // Lateral Midfoot FSR value
-float MM = 0; // Medial Midfoot FSR value
-float HEEL = 0; // Heel FSR value
+int sumMFP = 0; // calculation of MFP for current loop iteration
+int avgMFP = 0; //calculation for average MFP
+int MFP = 0; // final value for MFP
+int MF = 0; // Medial Forefoot FSR value
+int LF = 0; // Lateral Midfoot FSR value
+int MM = 0; // Medial Midfoot FSR value
+int HEEL = 0; // Heel FSR value
+
+int stepCount = 0;
+boolean heel_down = false;
+boolean heel_up = true;
 
 //set mfp values for different area of foot
 float mfp_normal = 0;
@@ -65,8 +71,8 @@ unsigned long int starttime = 0;
 unsigned long int endtime = 0;
 
 void setup() {
-
   Serial.begin(115200);
+  Serial.println("");
   while(!Serial){delay(10);}
 
   if(!mpu.begin()){
@@ -87,15 +93,20 @@ void setup() {
   pinMode(led_mf, OUTPUT);
   pinMode(led_lf, OUTPUT);
   pinMode(led_heel, OUTPUT);
+  
+   //get new sensor event
+  sensors_event_t a, g, temp;
+  mpu.getEvent(&a, &g, &temp);
+  xSet = a.acceleration.x;
+  ySet = a.acceleration.y;
+  zSet = a.acceleration.z;
 }
 void loop() {
-  
+      
   while (Serial.available()) {
     val = Serial.read();
   }
-  if(val == 'C') {  //configure motion sensor
-    configureMotion();
-  }
+
   if(val == 'N'||val == 'I'||val == 'O'||val == 'T'||val == 'H'){ //configure gait
     configureMFP(val);
   }
@@ -110,9 +121,26 @@ void loop() {
   delay(10);
   sendFSR();
   delay(10);
-  readMotion();
-  delay(10);
   sendMotion();
+
+  unsigned long runMillis = millis();
+  unsigned long allSeconds = millis()/1000;
+  int runHours = allSeconds/3600;
+  int secsRemaining=allSeconds%3600;
+  int runMinutes=secsRemaining/60;
+  int runSeconds=secsRemaining%60;
+
+  Serial.print("HOUR: ");
+  Serial.println(runHours);
+  Serial.print("MINUTE: ");
+  Serial.println(runMinutes);
+  Serial.print("SECOND: ");
+  Serial.println(runSeconds);
+  delay(10);
+  /*
+  char buf[21];
+  sprintf(buf,"TIME: %02d:%02d:%02d",runHours,runMinutes,runSeconds);
+  Serial.println(buf);*/
 }
 
 void calcMFP(){
@@ -125,6 +153,24 @@ void readFSR() {
   MM = analogRead(mm_pin);
   HEEL = analogRead(heel_pin);
 
+  if(HEEL > 0){
+    if(heel_down == false){
+      heel_down = true;
+    }
+  }
+  if(HEEL == 0){
+    if(heel_up == false){
+      heel_up = true;
+
+    }
+  }
+  delay(10);
+  if(heel_up  == true && heel_down == true) {
+    stepCount = stepCount + 1;
+    heel_up = false;
+    heel_down = false;
+    delay(100);
+  }
   analogWrite(led_mm, MM / 4); 
   analogWrite(led_mf, MF / 4); 
   analogWrite(led_lf, LF / 4); 
@@ -133,11 +179,22 @@ void readFSR() {
   
 }
 void sendFSR(){
-  Serial.print("P: ");
-  Serial.print(MF); Serial.print(" ");
-  Serial.print(LF); Serial.print(" ");
-  Serial.print(MM); Serial.print(" ");
+  Serial.print("MF: ");
+  Serial.println(MF); 
+  delay(10);
+  Serial.print("LF: ");
+  Serial.println(LF);
+  delay(10);
+  Serial.print("MM: ");
+  Serial.println(MM);
+  delay(10);
+  Serial.print("HEEL: ");
   Serial.println(HEEL); 
+  delay(10);
+  Serial.print("STEPCOUNT: ");
+  Serial.println(stepCount);
+  delay(10);
+ 
 }
 void readMotion(){
   //get new sensor event
@@ -155,57 +212,29 @@ void sendMotion(){
   float diff_x = 0;
   float diff_y = 0;
   float diff_z = 0;
-  
-  Serial.print("S3: ");
 
+  readMotion();
+  
   //if the difference between configured set data and data read has a difference then in motion
-  diff_x = abs(xSet - x); 
-  diff_y = abs(ySet - y);
-  diff_z = abs(zSet - z);
-
-  if(diff_z&&diff_y&&diff_x){
-    is_motion = true;
-  }
-  else{
-    is_motion = false;
-  }
+  diff_z = abs((float)(zSet - z )/(float)((zSet + z)/2));
+  diff_y = abs((float)(ySet - y )/(float)((ySet + y)/2));
+  diff_z = abs((float)(xSet - x )/(float)((xSet + x)/2));
+  Serial.println(diff_z);
+  Serial.println(diff_y);
+  Serial.println(diff_x);
   
-  if(is_motion){
-    Serial.print("1 ");
-    Serial.println(x);
-  }
-  else {
-    Serial.print("0 ");
+
+  Serial.print("S3: ");
+  if(diff_z == 0.00 && diff_x == 0.00){
     Serial.println("0");
   }
-}
-void configureMotion(){
-  
-  starttime = millis();
-  endtime = starttime;
-
-  float count = 0;
-  float sum_x = 0;
-  float sum_y = 0;
-  float sum_z = 0;
-
-  while((endtime - starttime) < 30000){
-    readMotion();
-    delay(10);
-    sum_x = sum_x + x;
-    sum_y = sum_y + y;
-    sum_z = sum_z + z;
-    count++;
-
-    endtime = millis();
+  else{
+    Serial.println("1");
   }
-  xSet = sum_x/count;
-  ySet = sum_y/count;
-  zSet = sum_z/count;
-  is_config = true;
-  
+  xSet = x;
+  ySet = y;
+  zSet = z;
 }
-
 //Input is a char of the MFP walk/gait type we are measuring
 void configureMFP(int gait_type){
   sendMessage("Starting to configure gait...");//sending starting configuration
@@ -261,7 +290,6 @@ void configureMFP(int gait_type){
   else if(gait_type == 'H'){ //heel
     gait = "heel";
     mfp_heel = MFP;
-    is_heel = true;
   }
   String m = "Finished configuring " + gait + " gait";
   sendMessage(m);  
@@ -278,11 +306,11 @@ String get_walk_type(float mfp){
   int mini = 1;
   
   //calculate percent difference for all values of preset mfp and calculated mfp for gaits
-  percent_diff_normal = abs((mfp_normal - mfp )/((mfp_normal + mfp)/2));
-  percent_diff_intoe = abs((mfp_intoe - mfp )/((mfp_intoe + mfp)/2));
-  percent_diff_outtoe = abs((mfp_outtoe - mfp )/((mfp_outtoe + mfp)/2));
-  percent_diff_tiptoe = abs((mfp_tiptoe - mfp )/((mfp_tiptoe + mfp)/2));
-  percent_diff_heel = abs((mfp_heel - mfp )/((mfp_heel + mfp)/2));
+  percent_diff_normal = abs((float)(mfp_normal - mfp )/((float)(mfp_normal + mfp)/2));
+  percent_diff_intoe = abs((float)(mfp_intoe - mfp )/((float)(mfp_intoe + mfp)/2));
+  percent_diff_outtoe = abs((float)(mfp_outtoe - mfp )/((float)(mfp_outtoe + mfp)/2));
+  percent_diff_tiptoe = abs((float)(mfp_tiptoe - mfp )/((float)(mfp_tiptoe + mfp)/2));
+  percent_diff_heel = abs((float)(mfp_heel - mfp )/((float)(mfp_heel + mfp)/2));
   
   //compare gaits to see which has smallest percent difference and that is the walk
   if( percent_diff_normal < mini) {
